@@ -9,8 +9,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Safwah - Parenting & Health Companion",
-  description: "A sophisticated and playful parenting dashboard for tracking nutrition, sleep, growth, vaccines, and daily activities.",
+  title: "Safwah Verifier - Airport Validation Gateway",
+  description: "Validate exit claims, scan tourist NFTs, approve USDC refunds, and export compliance reports for Planet Tax Free officers.",
 };
 
 export default function RootLayout({

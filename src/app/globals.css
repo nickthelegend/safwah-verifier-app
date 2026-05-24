@@ -1,9 +1,22 @@
 :root {
-  --color-charcoal: #171e19;
-  --color-vibrant-red: #ca0013;
-  --color-sage: #b7c6c2;
-  --color-off-white: #eeebe3;
-  --color-white: #ffffff;
+  /* Safwah Theme Colors */
+  --color-cyber-gold: #FDE047; /* Saturated Cyber Yellow/Gold */
+  --color-cyber-gold-dark: #D4AF37; /* Burnished luxury gold */
+  --color-deep-onyx: #0A0A0A; /* Void black */
+  --color-charcoal-gray: #171717; /* Surface gray */
+  --color-void-black: #050505; /* Deepest black */
+  --color-emerald-deep: #022C22; /* Dark luxury emerald */
+  --color-emerald-glow: #10B981; /* SUI green */
+  --color-warm-sand: #F5EBE6; /* Luxury beige sand */
+  --color-sand-dark: #C5A880; /* Rich sand accent */
+  --color-muted-gray: #737373; /* Muted text */
+
+  /* App Theme Variables Mapping */
+  --color-charcoal: var(--color-warm-sand); /* Main text is Warm Sand */
+  --color-vibrant-red: var(--color-cyber-gold-dark); /* FAB/Primary CTA is Gold */
+  --color-sage: var(--color-sand-dark); /* Secondary labels/borders are Sand Dark */
+  --color-off-white: var(--color-void-black); /* Canvas backdrop is Void Black */
+  --color-white: #121212; /* Core Card surfaces are dark charcoal */
   
   --font-nunito: var(--font-nunito), sans-serif;
   
@@ -11,11 +24,11 @@
   --radius-nested-item: 24px; /* 1.5rem */
   --radius-bento: 16px; /* 1rem */
   
-  --border-color: rgba(183, 198, 194, 0.25); /* #b7c6c2 at 25% opacity */
+  --border-color: rgba(212, 175, 55, 0.15); /* Gold glass borders */
   --border-style: 1px solid var(--border-color);
   
-  --shadow-spread: 0 20px 50px -12px rgba(0, 0, 0, 0.08);
-  --shadow-red: 0 10px 25px -5px rgba(202, 0, 19, 0.3);
+  --shadow-spread: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+  --shadow-red: 0 10px 25px -5px rgba(212, 175, 55, 0.25);
 }
 
 * {
@@ -40,20 +53,20 @@ body {
   align-items: flex-start;
 }
 
-/* Custom Scrollbar for scrolling categories */
+/* Custom Webkit scrollbars in dark theme style */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--color-void-black);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(183, 198, 194, 0.4);
+  background: var(--color-charcoal-gray);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-sage);
+  background: var(--color-sand-dark);
 }
 
 /* Typography Specifics */
@@ -123,7 +136,7 @@ h3 {
 .header-title-name {
   font-size: 30px;
   font-weight: 800; /* Font-Bold */
-  color: var(--color-charcoal);
+  color: var(--color-warm-sand);
   line-height: 1.1;
 }
 
@@ -135,12 +148,12 @@ h3 {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 2px solid var(--color-white);
+  border: 2px solid var(--color-cyber-gold-dark); /* Gold profile ring */
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   position: relative;
   cursor: pointer;
-  background-color: var(--color-sage);
+  background-color: var(--color-emerald-deep);
 }
 
 .profile-img {
@@ -152,9 +165,9 @@ h3 {
 .notification-badge {
   width: 16px;
   height: 16px;
-  background-color: var(--color-vibrant-red);
+  background-color: var(--color-cyber-gold); /* Gold status dot */
   border-radius: 50%;
-  border: 2px solid var(--color-white);
+  border: 2px solid var(--color-void-black);
   position: absolute;
   bottom: -2px;
   right: -2px;
@@ -164,15 +177,15 @@ h3 {
 @keyframes pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(202, 0, 19, 0.4);
+    box-shadow: 0 0 0 0 rgba(253, 224, 71, 0.4);
   }
   70% {
     transform: scale(1.1);
-    box-shadow: 0 0 0 6px rgba(202, 0, 19, 0);
+    box-shadow: 0 0 0 6px rgba(253, 224, 71, 0);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(202, 0, 19, 0);
+    box-shadow: 0 0 0 0 rgba(253, 224, 71, 0);
   }
 }
 
@@ -186,11 +199,11 @@ h3 {
   margin: 0 -20px;
   padding-left: 20px;
   padding-right: 20px;
-  scrollbar-width: none; /* Hide scrollbar Firefox */
+  scrollbar-width: none;
 }
 
 .category-scroll-container::-webkit-scrollbar {
-  display: none; /* Hide scrollbar Chrome/Safari */
+  display: none;
 }
 
 .category-btn-wrapper {
@@ -202,9 +215,9 @@ h3 {
 .category-btn-inactive {
   width: 56px;
   height: 56px;
-  background-color: var(--color-white);
+  background-color: #121212;
   border-radius: 16px;
-  border: 1px solid rgba(183, 198, 194, 0.3); /* #b7c6c2/30 border */
+  border: 1px solid rgba(255, 255, 255, 0.08); /* White glass border */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -215,16 +228,17 @@ h3 {
 
 .category-btn-inactive:hover {
   transform: translateY(-2px);
-  border-color: var(--color-sage);
+  border-color: var(--color-sand-dark);
+  background-color: #181818;
 }
 
-/* Category Button Active */
+/* Category Button Active: Emerald Deep Pill with Gold accents */
 .category-btn-active {
   width: 160px;
   height: 56px;
-  background-color: var(--color-charcoal);
-  border-radius: 40px; /* active state: 160px wide pill */
-  border: none;
+  background-color: var(--color-emerald-deep);
+  border-radius: 40px;
+  border: 1px solid rgba(212, 175, 55, 0.25); /* Gold glow border */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -237,18 +251,18 @@ h3 {
 .active-circle {
   width: 40px;
   height: 40px;
-  background-color: var(--color-vibrant-red);
+  background-color: var(--color-cyber-gold-dark);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
-  color: var(--color-white);
+  color: var(--color-void-black);
 }
 
 .active-label {
-  color: var(--color-white);
+  color: var(--color-warm-sand);
   font-family: var(--font-nunito);
   font-weight: 700;
   font-size: 14px;
@@ -260,9 +274,9 @@ h3 {
 
 /* Hero Feature Card */
 .hero-card {
-  background-color: var(--color-white);
+  background-color: #121212;
   border-radius: var(--radius-main-card); /* 40px */
-  border: var(--border-style);
+  border: var(--border-style); /* Subtle gold glass border */
   padding: 32px 28px;
   position: relative;
   overflow: hidden;
@@ -272,7 +286,7 @@ h3 {
   gap: 20px;
 }
 
-/* Decorative blob in top-right */
+/* Decorative blob in top-right: Emerald green glow */
 .decorative-blob {
   position: absolute;
   top: -40px;
@@ -280,8 +294,8 @@ h3 {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background-color: rgba(183, 198, 194, 0.2); /* #b7c6c2/20 */
-  filter: blur(12px);
+  background-color: rgba(16, 185, 129, 0.12); /* Emerald glow at 12% */
+  filter: blur(15px);
   z-index: 0;
   pointer-events: none;
 }
@@ -297,14 +311,14 @@ h3 {
 .hero-icon-holder {
   width: 64px;
   height: 64px;
-  background-color: var(--color-white);
+  background-color: #1a1a1a;
   border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(183, 198, 194, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
 
@@ -318,7 +332,7 @@ h3 {
 .hero-card-desc {
   font-size: 14px;
   line-height: 1.5;
-  color: rgba(23, 30, 25, 0.8);
+  color: rgba(245, 235, 230, 0.8); /* Warm Sand at 80% opacity */
   position: relative;
   z-index: 1;
 }
@@ -332,13 +346,13 @@ h3 {
   z-index: 1;
 }
 
-/* Bento Metric Card Spec: 16px rounded card, white at 80% opacity, backdrop blur, padding 12px */
+/* Bento Metric Card: Glassmorphic with translucent surface */
 .bento-metric-card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(25, 25, 25, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-radius: var(--radius-bento); /* 16px */
-  border: var(--border-style);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -348,7 +362,7 @@ h3 {
 
 .bento-metric-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(183, 198, 194, 0.5);
+  border-color: rgba(212, 175, 55, 0.35); /* Glow Gold Border on Hover */
 }
 
 .bento-metric-label {
@@ -365,12 +379,12 @@ h3 {
   gap: 8px;
 }
 
-/* Leading 32px circular icon in #ca0013 at 10% opacity */
+/* Leading 32px circular icon in #FDE047 at 10% opacity */
 .bento-icon-circle {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: rgba(202, 0, 19, 0.1);
+  background-color: rgba(253, 224, 71, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,29 +394,30 @@ h3 {
 .bento-icon-circle svg {
   width: 16px;
   height: 16px;
-  stroke: var(--color-vibrant-red);
+  stroke: var(--color-cyber-gold); /* Cyber Gold SVG lines */
   stroke-width: 2.5;
   fill: none;
 }
 
-/* Content: 14px bold #171e19 */
+/* Content: 14px bold warm sand */
 .bento-value {
   font-size: 14px;
   font-weight: 700;
-  color: var(--color-charcoal);
+  color: var(--color-warm-sand);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Alert Box at the bottom using #b7c6c2/20 background */
+/* Alert Box: Emerald deep backdrop with emerald glow border */
 .hero-alert-box {
-  background-color: rgba(183, 198, 194, 0.2); /* #b7c6c2/20 */
+  background-color: rgba(2, 44, 34, 0.45); /* Emerald Deep at 45% */
+  border: 1px solid rgba(16, 185, 129, 0.2); /* Emerald Glow border */
   border-radius: 16px;
   padding: 12px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-charcoal);
+  color: var(--color-warm-sand);
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -433,20 +448,20 @@ h3 {
 }
 
 .feed-card {
-  background-color: var(--color-white);
+  background-color: #121212 !important;
   border-radius: var(--radius-nested-item); /* 24px */
-  border: 1px solid rgba(183, 198, 194, 0.3); /* #b7c6c2/30 border */
+  border: 1px solid rgba(212, 175, 55, 0.08) !important; /* Subtle Gold border */
   padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .feed-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(183, 198, 194, 0.6);
+  border-color: rgba(212, 175, 55, 0.25) !important;
 }
 
 .feed-card-left {
@@ -462,7 +477,7 @@ h3 {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background-color: rgba(183, 198, 194, 0.15); /* 15% to look beautiful */
+  background-color: rgba(197, 168, 128, 0.12); /* Sand dark at 12% */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -482,11 +497,11 @@ h3 {
   min-width: 0;
 }
 
-/* 18px bold headings */
+/* 18px bold headings in warm sand */
 .feed-title {
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-charcoal);
+  color: var(--color-warm-sand);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -495,21 +510,21 @@ h3 {
 
 .feed-subtitle {
   font-size: 12px;
-  color: var(--color-sage);
+  color: var(--color-muted-gray);
   font-weight: 500;
 }
 
 .feed-card.completed .feed-title {
   text-decoration: line-through;
-  color: var(--color-sage);
-  opacity: 0.6;
+  color: var(--color-muted-gray);
+  opacity: 0.5;
 }
 
 .feed-card.completed .feed-subtitle {
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
-/* circular trailing checkbox button (40px) that changes to red on hover */
+/* Checkbox Button: Sand borders, turns gold on completion */
 .checkbox-btn {
   width: 40px;
   height: 40px;
@@ -526,27 +541,27 @@ h3 {
 }
 
 .checkbox-btn:hover {
-  border-color: var(--color-vibrant-red);
-  background-color: rgba(202, 0, 19, 0.05);
+  border-color: var(--color-cyber-gold);
+  background-color: rgba(253, 224, 71, 0.05);
   transform: scale(1.05);
 }
 
 .checkbox-btn.checked {
-  background-color: var(--color-vibrant-red);
-  border-color: var(--color-vibrant-red);
+  background-color: var(--color-cyber-gold-dark);
+  border-color: var(--color-cyber-gold-dark);
   box-shadow: var(--shadow-red);
 }
 
 .checkbox-btn.checked:hover {
-  background-color: #a8000f;
-  border-color: #a8000f;
+  background-color: var(--color-cyber-gold);
+  border-color: var(--color-cyber-gold);
 }
 
 .checkbox-btn svg {
   width: 18px;
   height: 18px;
-  stroke: var(--color-white);
-  stroke-width: 3;
+  stroke: var(--color-void-black); /* Dark check mark on gold */
+  stroke-width: 3.5;
   fill: none;
   opacity: 0;
   transform: scale(0.6);
@@ -558,7 +573,7 @@ h3 {
   transform: scale(1);
 }
 
-/* Floating Navigation Bar bottom-aligned pill (8px from bottom edges) in #171e19. */
+/* Floating Navigation Bar in Charcoal Gray (#171717) */
 .nav-wrapper {
   position: fixed;
   bottom: 8px; /* 8px from bottom edges */
@@ -574,18 +589,18 @@ h3 {
   pointer-events: auto;
   width: 100%;
   max-width: 440px;
-  height: 64px; /* Height: 64px */
-  background-color: var(--color-charcoal);
+  height: 64px;
+  background-color: var(--color-charcoal-gray); /* Surface gray */
   border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.08); /* White glass border */
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 0 16px;
   position: relative;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
 }
 
-/* 48px touch targets for navigation icons */
 .nav-item-btn {
   width: 48px;
   height: 48px;
@@ -612,17 +627,17 @@ h3 {
   transition: all 0.2s ease;
 }
 
-/* White icon for active state, #b7c6c2 for inactive. */
+/* Cyber gold icon active, muted gray inactive */
 .nav-item-btn.active svg {
-  stroke: var(--color-white);
+  stroke: var(--color-cyber-gold);
   transform: scale(1.1);
 }
 
 .nav-item-btn.inactive svg {
-  stroke: var(--color-sage);
+  stroke: var(--color-muted-gray);
 }
 
-/* Center Action: 56px red circle button offset vertically (floating 32px above the bar) with a 4px #eeebe3 border */
+/* Center Action: FAB in Cyber Gold Dark with cutout border matching void black page bg */
 .fab-container {
   position: relative;
   width: 56px;
@@ -632,13 +647,13 @@ h3 {
 
 .fab-btn {
   position: absolute;
-  top: -32px; /* floating 32px above the bar */
+  top: -32px;
   left: 0;
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: var(--color-vibrant-red);
-  border: 4px solid var(--color-off-white); /* 4px solid #eeebe3 border matching the background */
+  background-color: var(--color-cyber-gold-dark); /* Gold FAB */
+  border: 4px solid var(--color-void-black); /* 4px solid void black cutout */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -649,7 +664,7 @@ h3 {
 
 .fab-btn:hover {
   transform: scale(1.1) translateY(-4px);
-  background-color: #e60016;
+  background-color: var(--color-cyber-gold);
 }
 
 .fab-btn:active {
@@ -659,8 +674,8 @@ h3 {
 .fab-btn svg {
   width: 24px;
   height: 24px;
-  stroke: var(--color-white);
-  stroke-width: 3;
+  stroke: var(--color-void-black); /* Dark cross on gold */
+  stroke-width: 3.5;
   fill: none;
   transition: transform 0.25s ease;
 }
@@ -676,8 +691,8 @@ h3 {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(23, 30, 25, 0.6);
-  backdrop-filter: blur(8px);
+  background-color: rgba(5, 5, 5, 0.8); /* Void black modal backdrop */
+  backdrop-filter: blur(12px);
   display: flex;
   justify-content: center;
   align-items: flex-end;
@@ -685,18 +700,21 @@ h3 {
   animation: fadeInModal 0.25s ease-out;
 }
 
+/* Modal Content: Gold border luxury dark card */
 .modal-content {
   width: 100%;
   max-width: 480px;
-  background-color: var(--color-white);
-  border-radius: var(--radius-main-card) var(--radius-main-card) 0 0; /* 40px rounded top */
+  background-color: #121212 !important;
+  border-radius: var(--radius-main-card) var(--radius-main-card) 0 0;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
   padding: 36px 24px 48px 24px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
   transform: translateY(0);
   animation: slideUpModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  color: var(--color-warm-sand) !important;
 }
 
 @keyframes fadeInModal {
@@ -726,28 +744,33 @@ h3 {
 
 .form-input {
   width: 100%;
-  border-radius: var(--radius-nested-item); /* 24px */
-  border: 1px solid var(--color-sage);
+  border-radius: var(--radius-nested-item);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   padding: 16px 20px;
   font-family: var(--font-nunito);
   font-size: 16px;
-  color: var(--color-charcoal);
-  background-color: transparent;
+  color: var(--color-warm-sand) !important;
+  background-color: rgba(5, 5, 5, 0.3) !important;
   transition: all 0.2s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-vibrant-red);
-  box-shadow: 0 0 0 4px rgba(202, 0, 19, 0.08);
+  border-color: var(--color-cyber-gold) !important;
+  box-shadow: 0 0 0 4px rgba(253, 224, 71, 0.1) !important;
 }
 
 .form-select {
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23b7c6c2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C5A880' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
   background-repeat: no-repeat;
   background-position: right 20px center;
   background-size: 16px;
+}
+
+.form-select option {
+  background-color: #121212 !important;
+  color: var(--color-warm-sand) !important;
 }
 
 .modal-buttons {
@@ -758,6 +781,50 @@ h3 {
 
 .modal-buttons button {
   flex: 1;
+}
+
+/* Primary btn is gold with void black text */
+.btn-primary {
+  background-color: var(--color-cyber-gold-dark) !important;
+  color: var(--color-void-black) !important;
+  border: none;
+  font-family: var(--font-nunito);
+  font-weight: 800;
+  border-radius: var(--radius-nested-item);
+  padding: 14px 28px;
+  cursor: pointer;
+  box-shadow: var(--shadow-red) !important;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-cyber-gold) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+/* Secondary btn is transparent glass with warm sand border/text */
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  color: var(--color-warm-sand) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-family: var(--font-nunito);
+  font-weight: 800;
+  border-radius: var(--radius-nested-item);
+  padding: 14px 28px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.btn-secondary:active {
+  transform: scale(0.96);
 }
 
 /* Fade animation view transition effect */
