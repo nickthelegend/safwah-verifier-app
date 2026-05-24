@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import SuiProvider from "../providers/SuiProvider";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -20,7 +21,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={nunito.variable}>
-      <body className={nunito.className}>{children}</body>
+      <body className={nunito.className}>
+        <SuiProvider>
+          {children}
+        </SuiProvider>
+      </body>
     </html>
   );
 }

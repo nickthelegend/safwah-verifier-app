@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import WalletConnect from "../components/WalletConnect";
 
 // Types
 type CategoryId = "verify" | "claims" | "flagged" | "compliance";
@@ -19,12 +21,10 @@ interface ClaimRecord {
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>("verify");
   
-  // Wallet state
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState("");
-  const [showWalletMenu, setShowWalletMenu] = useState(false);
-  const [showConnectModal, setShowConnectModal] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  // Real Sui Wallet connection hooks
+  const currentAccount = useCurrentAccount();
+  const walletConnected = !!currentAccount;
+  const walletAddress = currentAccount?.address || "";
 
   // Verifier stats state
   const [approvedCount, setApprovedCount] = useState(148);
@@ -46,22 +46,7 @@ export default function Home() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Sui Connect simulator
-  const handleConnectWallet = (walletType: string) => {
-    setIsConnecting(true);
-    setShowConnectModal(false);
-    setTimeout(() => {
-      setWalletAddress("0x3a2ef23f10901e9a21ba207f6e3c4a20b08f9de");
-      setWalletConnected(true);
-      setIsConnecting(false);
-    }, 1200);
-  };
-
-  const handleDisconnect = () => {
-    setWalletConnected(false);
-    setWalletAddress("");
-    setShowWalletMenu(false);
-  };
+  // Real SUI wallet integration replaces mock connectors
 
   const handleVerifySearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,39 +121,7 @@ export default function Home() {
         </div>
         
         <div className="header-right">
-          {walletConnected ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-              <button 
-                className="btn-primary" 
-                style={{ padding: "8px 16px", borderRadius: "16px", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}
-                onClick={() => setShowWalletMenu(!showWalletMenu)}
-              >
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#10B981" }}></span>
-                Customs Node
-              </button>
-              {showWalletMenu && (
-                <div style={{ position: "absolute", top: "45px", right: "0", backgroundColor: "#1a1a1a", border: "1px solid rgba(212, 175, 55, 0.3)", borderRadius: "12px", zIndex: 1000, padding: "8px", width: "160px" }}>
-                  <div style={{ fontSize: "10px", color: "var(--color-sage)", padding: "4px 8px" }}>NODE ADDR</div>
-                  <div style={{ fontSize: "10px", fontWeight: "bold", padding: "2px 8px", color: "#fff", overflow: "hidden", textOverflow: "ellipsis" }}>{walletAddress}</div>
-                  <div style={{ fontSize: "12px", padding: "8px 8px 2px 8px", color: "#10B981" }}>✓ Node Online</div>
-                  <button 
-                    onClick={handleDisconnect}
-                    style={{ background: "none", border: "none", color: "#EF4444", fontSize: "12px", width: "100%", textAlign: "left", padding: "8px", cursor: "pointer", fontWeight: "bold" }}
-                  >
-                    Disconnect
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button 
-              className="btn-primary"
-              style={{ padding: "10px 18px", borderRadius: "20px", fontSize: "12px" }}
-              onClick={() => setShowConnectModal(true)}
-            >
-              {isConnecting ? "Connecting Node..." : "Connect Node"}
-            </button>
-          )}
+          <WalletConnect />
         </div>
       </header>
 
@@ -472,22 +425,7 @@ export default function Home() {
         </nav>
       </div>
 
-      {/* Connect Wallet Modal */}
-      {showConnectModal && (
-        <div className="modal-overlay" onClick={() => setShowConnectModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span className="label-caps" style={{ color: "var(--color-cyber-gold)" }}>Connect Customs Node Wallet</span>
-              <button onClick={() => setShowConnectModal(false)} style={{ background: "none", border: "none", fontSize: "24px", color: "var(--color-sage)", cursor: "pointer" }}>&times;</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <button className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "12px", justifyContent: "flex-start", padding: "16px" }} onClick={() => handleConnectWallet("Mysten")}>
-                <span style={{ fontSize: "20px" }}>💧</span> Sign on-chain via Customs Node
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Real Sui Connect Button Modal automatically managed by WalletProvider */}
 
       {/* Scanner FAB Modal */}
       {isModalOpen && (
