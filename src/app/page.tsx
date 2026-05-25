@@ -2,29 +2,58 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient, useSuiClientQuery } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
 import WalletConnect from "../components/WalletConnect";
+import { generateAndUploadCertificate } from "../lib/generate-certificate";
+import { getWalrusBlobUrl } from "../lib/walrus";
+import { CONTRACTS } from "../lib/contracts";
 
 // Types
-type CategoryId = "verify" | "claims" | "flagged" | "compliance";
-
 interface ClaimRecord {
-  id: string;
-  touristWallet: string;
-  totalVat: string;
-  refundAmount: string;
-  airport: string;
-  date: string;
-  status: "Pending Exit Validation" | "Approved (20% Released)" | "Flagged for Inspection";
+  objectId: string;
+  claimNumber: string;
+  tourist: string;
+  totalPurchaseAmount: number;
+  totalVatAmount: number;
+  instantAmount: number;
+  finalAmount: number;
+  receiptCount: number;
+  receiptBlobIds: string[];
+  merchantNames: string[];
+  status: number;
+  submittedEpoch: number;
+  approvedEpoch: number;
+  settledEpoch: number;
+  verifierAddress: string;
+  qrCodeData: string;
 }
 
 export default function Home() {
-  const [activeCategory, setActiveCategory] = useState<CategoryId>("verify");
+  const [activeCategory, setActiveCategory] = useState<"verify" | "claims" | "flagged" | "compliance">("verify");
   
   // Real Sui Wallet connection hooks
   const currentAccount = useCurrentAccount();
   const walletConnected = !!currentAccount;
   const walletAddress = currentAccount?.address || "";
+  const suiClient = useSuiClient();
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+
+  // Query owned VerifierCap object
+  const { data: ownedVerifierCaps, refetch: refetchVerifierCaps } = useSuiClientQuery('getOwnedObjects', {
+    owner: walletAddress,
+    filter: {
+      StructType: `${CONTRACTS.PACKAGE_ID}::safwah::VerifierCap`,
+    },
+    options: {
+      showContent: true,
+    }
+  }, { enabled: walletConnected });
+
+  const hasVerifierCap = ownedVerifierCaps && ownedVerifierCaps.data.length > 0;
+  const verifierCapObject = hasVerifierCap ? ownedVerifierCaps.data[0].data : null;
+  const verifierCapObjectId = verifierCapObject?.objectId || "";
+  const verifierName = verifierCapObject ? ((verifierCapObject.content as any)?.fields?.verifier_name || "Customs Gate Officer") : "Customs Gate Officer";
 
   // Verifier stats state
   const [approvedCount, setApprovedCount] = useState(148);
@@ -32,83 +61,266 @@ export default function Home() {
   const [volumeProcessed, setVolumeProcessed] = useState("18,450.00");
 
   // Airport queue records state
-  const [records, setRecords] = useState<ClaimRecord[]>([
-    { id: "CLM-8902", touristWallet: "0x8c2a...f9de", totalVat: "148.20 USDC", refundAmount: "118.56 USDC Paid (80%)", airport: "DXB Terminal 3", date: "2026-05-24", status: "Pending Exit Validation" },
-    { id: "CLM-8903", touristWallet: "0x3a9f...e42c", totalVat: "622.50 USDC", refundAmount: "498.00 USDC Paid (80%)", airport: "DXB Terminal 1", date: "2026-05-24", status: "Pending Exit Validation" },
-    { id: "CLM-8901", touristWallet: "0xf19e...88ab", totalVat: "85.00 USDC", refundAmount: "85.00 USDC (Split 100%)", airport: "AUH Terminal A", date: "2026-05-23", status: "Approved (20% Released)" }
-  ]);
+  const [records, setRecords] = useState<ClaimRecord[]>([]);
+  const [flaggedIds, setFlaggedIds] = useState<string[]>([]);
+  const [isLoadingQueue, setIsLoadingQueue] = useState(false);
 
-  // Scan states
+  // Scan / Search states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchClaimId, setSearchClaimId] = useState("");
   const [scannedClaim, setScannedClaim] = useState<ClaimRecord | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Walrus receipt states
+  const [receiptContents, setReceiptContents] = useState<any[]>([]);
+  const [isLoadingReceipts, setIsLoadingReceipts] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Real SUI wallet integration replaces mock connectors
+  // Load flagged IDs from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("safwah_flagged_ids");
+    if (saved) {
+      try {
+        setFlaggedIds(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
 
-  const handleVerifySearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchClaimId) return;
+  // Save flagged IDs to localStorage when modified
+  const saveFlaggedIds = (ids: string[]) => {
+    setFlaggedIds(ids);
+    localStorage.setItem("safwah_flagged_ids", JSON.stringify(ids));
+  };
 
-    const found = records.find(r => r.id.toLowerCase() === searchClaimId.trim().toLowerCase());
-    if (found) {
-      setScannedClaim(found);
-    } else {
-      alert(`Claim ID ${searchClaimId} not found in airport validation records.`);
+  // Helper to fetch single VatClaim details
+  const handleFetchClaim = async (objectId: string): Promise<ClaimRecord | null> => {
+    try {
+      const response = await suiClient.getObject({
+        id: objectId,
+        options: { showContent: true }
+      });
+      if (response.error) {
+        return null;
+      }
+      const content = response.data?.content;
+      if (!content || (content as any).dataType !== 'moveObject') {
+        return null;
+      }
+      const fields = (content as any).fields;
+      return {
+        objectId: objectId,
+        claimNumber: fields.claim_number,
+        tourist: fields.tourist,
+        totalPurchaseAmount: Number(fields.total_purchase_amount),
+        totalVatAmount: Number(fields.total_vat_amount),
+        instantAmount: Number(fields.instant_amount),
+        finalAmount: Number(fields.final_amount),
+        receiptCount: Number(fields.receipt_count),
+        receiptBlobIds: fields.receipt_blob_ids,
+        merchantNames: fields.merchant_names,
+        status: Number(fields.status),
+        submittedEpoch: Number(fields.submitted_epoch),
+        approvedEpoch: Number(fields.approved_epoch),
+        settledEpoch: Number(fields.settled_epoch),
+        verifierAddress: fields.verifier_address,
+        qrCodeData: fields.qr_code_data
+      };
+    } catch (err) {
+      console.error(`Error fetching claim ${objectId}:`, err);
+      return null;
     }
   };
 
-  // FAB Scanner Trigger Simulation
+  // Fetch recent claims submitted on-chain
+  const loadRecentClaims = async () => {
+    setIsLoadingQueue(true);
+    try {
+      const events = await suiClient.queryEvents({
+        query: {
+          MoveEventType: `${CONTRACTS.PACKAGE_ID}::safwah::ClaimSubmitted`
+        },
+        limit: 15,
+        order: 'descending'
+      });
+      
+      const tempRecords: ClaimRecord[] = [];
+      const fetchedIds = new Set<string>();
+
+      for (const ev of events.data) {
+        const claimId = (ev.parsedJson as any).claim_id;
+        if (claimId && !fetchedIds.has(claimId)) {
+          fetchedIds.add(claimId);
+          const claimDetails = await handleFetchClaim(claimId);
+          if (claimDetails) {
+            tempRecords.push(claimDetails);
+          }
+        }
+      }
+
+      if (tempRecords.length > 0) {
+        setRecords(tempRecords);
+      }
+    } catch (err) {
+      console.error("Failed to load claims queue:", err);
+    } finally {
+      setIsLoadingQueue(false);
+    }
+  };
+
+  // Load queue on wallet connection or tab shift
+  useEffect(() => {
+    loadRecentClaims();
+  }, [walletAddress]);
+
+  // Fetch receipts from Walrus when a claim is selected
+  useEffect(() => {
+    if (!scannedClaim || !scannedClaim.receiptBlobIds) {
+      setReceiptContents([]);
+      return;
+    }
+
+    const fetchReceipts = async () => {
+      setIsLoadingReceipts(true);
+      const contents = [];
+      for (const blobId of scannedClaim.receiptBlobIds) {
+        try {
+          const response = await fetch(`${getWalrusBlobUrl(blobId)}`);
+          if (response.ok) {
+            const data = await response.json();
+            contents.push({ blobId, ...data });
+          } else {
+            contents.push({ blobId, storeName: "Imported Invoice", amountAED: "N/A", vatAED: "N/A" });
+          }
+        } catch (err) {
+          contents.push({ blobId, storeName: "Store Receipt", amountAED: "Customs Inspected", vatAED: "N/A" });
+        }
+      }
+      setReceiptContents(contents);
+      setIsLoadingReceipts(false);
+    };
+
+    fetchReceipts();
+  }, [scannedClaim]);
+
+  const handleVerifySearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchClaimId) return;
+
+    setIsLoadingReceipts(true);
+    const claim = await handleFetchClaim(searchClaimId.trim());
+    setIsLoadingReceipts(false);
+
+    if (claim) {
+      setScannedClaim(claim);
+    } else {
+      alert(`Claim Object ID ${searchClaimId} not found on Sui Devnet. Please verify the Object ID.`);
+    }
+  };
+
+  // FAB Scanner Trigger: pulls the first pending claim from the dynamic queue
   const handleTriggerScanner = () => {
+    const pending = records.find(r => r.status === 1 && !flaggedIds.includes(r.objectId));
+    if (!pending) {
+      alert("No active pending claims found in exit queue to scan. Try submitting one in the tourist app.");
+      return;
+    }
+
     setIsScanning(true);
     setIsModalOpen(true);
     setTimeout(() => {
-      // Pull first pending claim to simulate scanning a real tourist QR
-      const pending = records.find(r => r.status === "Pending Exit Validation");
-      if (pending) {
-        setScannedClaim(pending);
-      }
+      setScannedClaim(pending);
       setIsScanning(false);
-    }, 1500);
+    }, 1200);
   };
 
-  // Exit Validation Approval: Triggers remaining 20% refund contract payout
-  const handleApproveExit = (claimId: string) => {
+  // Exit Validation Approval: release remaining 20%
+  const handleApproveExit = async (objectId: string) => {
     if (!walletConnected) {
       alert("Please connect verifier node wallet!");
       return;
     }
-
-    setRecords(prev => prev.map(rec => 
-      rec.id === claimId ? { ...rec, status: "Approved (20% Released)" } : rec
-    ));
-    setApprovedCount(prev => prev + 1);
-    
-    // Add volume
-    const target = records.find(r => r.id === claimId);
-    if (target) {
-      const remainingVat = parseFloat(target.totalVat) * 0.2;
-      setVolumeProcessed(prev => (parseFloat(prev.replace(/,/g, '')) + remainingVat).toFixed(2));
+    if (!hasVerifierCap) {
+      alert("This wallet does not hold the required Customs VerifierCap!");
+      return;
     }
 
-    setScannedClaim(null);
-    setIsModalOpen(false);
-    setActiveCategory("claims");
-    alert(`Exit validation success for ${claimId}!\n\nSmart contract transaction signed.\nRemaining 20% on-chain payout has been released to tourist wallet.`);
+    const claim = scannedClaim || records.find(r => r.objectId === objectId);
+    if (!claim) return;
+
+    setIsApproving(true);
+    try {
+      // 1. Generate exit settlement certificate PDF and upload to Walrus
+      const certResult = await generateAndUploadCertificate({
+        claimId: claim.objectId,
+        touristAddress: claim.tourist,
+        totalRefunded: claim.totalVatAmount,
+        merchantNames: claim.merchantNames || [],
+        receiptCount: claim.receiptCount,
+        settledAt: new Date()
+      });
+
+      // 2. Approve exit on Sui
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${CONTRACTS.PACKAGE_ID}::safwah::approve_and_settle`,
+        arguments: [
+          tx.object(verifierCapObjectId),
+          tx.object(CONTRACTS.ESCROW_ID),
+          tx.object(claim.objectId),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(certResult.blobId))),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(certResult.blobUrl))),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(certResult.blobUrl))),
+        ],
+      });
+
+      const result = await signAndExecute({ transaction: tx });
+      alert(`Exit validation success for Claim ${claim.claimNumber}!\n\nSmart contract transaction signed.\nRemaining 20% on-chain payout released to tourist wallet.\nTx Hash: ${result.digest}\nCertificate Blob: ${certResult.blobId.slice(0, 8)}...`);
+
+      // Update local metrics
+      setApprovedCount(prev => prev + 1);
+      const remainingVat = claim.finalAmount / 1_000_000;
+      setVolumeProcessed(prev => (parseFloat(prev.replace(/,/g, '')) + remainingVat).toFixed(2));
+
+      // Remove from flagged if approved
+      if (flaggedIds.includes(claim.objectId)) {
+        saveFlaggedIds(flaggedIds.filter(id => id !== claim.objectId));
+      }
+
+      setScannedClaim(null);
+      setIsModalOpen(false);
+      await loadRecentClaims();
+      setActiveCategory("claims");
+    } catch (err: any) {
+      alert(`Exit approval failed: ${err.message || err}`);
+    } finally {
+      setIsApproving(false);
+    }
   };
 
   // Flag claim for physical inspection
-  const handleFlagClaim = (claimId: string) => {
-    setRecords(prev => prev.map(rec => 
-      rec.id === claimId ? { ...rec, status: "Flagged for Inspection" } : rec
-    ));
-    setFlaggedCount(prev => prev + 1);
+  const handleFlagClaim = (objectId: string) => {
+    if (!flaggedIds.includes(objectId)) {
+      const updatedFlags = [...flaggedIds, objectId];
+      saveFlaggedIds(updatedFlags);
+      setFlaggedCount(updatedFlags.length);
+    }
     setScannedClaim(null);
     setIsModalOpen(false);
     setActiveCategory("flagged");
-    alert(`Claim ${claimId} has been FLAGGED for physical customs inspection.\nTourist has been notified via their app.`);
+    alert(`Claim has been FLAGGED for physical customs inspection.\nTourist has been notified via their app.`);
+  };
+
+  const getStatusLabel = (claim: ClaimRecord) => {
+    if (flaggedIds.includes(claim.objectId)) {
+      return "Flagged for Inspection";
+    }
+    switch (claim.status) {
+      case 1: return "Pending Exit Validation";
+      case 3: return "Approved (20% Released)";
+      default: return "Processed";
+    }
   };
 
   return (
@@ -116,7 +328,7 @@ export default function Home() {
       {/* Header section with wallet connection */}
       <header className="header">
         <div className="header-left">
-          <span className="header-greeting-lbl">SAFWAH AIRPORT VAL</span>
+          <span className="header-greeting-lbl">SAFWAH AIRPORT VAL ({verifierName})</span>
           <h1 className="header-title-name">Customs Gate</h1>
         </div>
         
@@ -189,13 +401,13 @@ export default function Home() {
               </div>
             </div>
             <p className="hero-card-desc">
-              Scan tourist's Safwah NFT / Claim QR to inspect receipts and approve on-chain split refund payouts upon airport departure.
+              Scan tourist's Safwah NFT / Claim QR or enter their Claim Object ID to inspect receipts and approve exit refund splits on-chain.
             </p>
             <form onSubmit={handleVerifySearch} style={{ display: "flex", gap: "10px", position: "relative", zIndex: 10 }}>
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="Enter Claim ID (e.g. CLM-8902)" 
+                placeholder="Enter Claim Object ID" 
                 value={searchClaimId}
                 onChange={(e) => setSearchClaimId(e.target.value)}
                 required
@@ -230,7 +442,7 @@ export default function Home() {
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/></svg>
                   </div>
                   <span className="bento-value">
-                    {records.filter(r => r.status === "Pending Exit Validation").length} Pending
+                    {records.filter(r => r.status === 1 && !flaggedIds.includes(r.objectId)).length} Pending
                   </span>
                 </div>
               </div>
@@ -244,6 +456,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            <button className="btn-primary" style={{ width: "100%", padding: "12px", marginTop: "12px" }} onClick={loadRecentClaims} disabled={isLoadingQueue}>
+              {isLoadingQueue ? "Refreshing..." : "↻ Refresh Queue"}
+            </button>
           </>
         )}
 
@@ -255,7 +470,7 @@ export default function Home() {
                 <span>⚠️</span>
               </div>
               <div className="hero-title-area">
-                <span className="label-caps">FRAUD prevention</span>
+                <span className="label-caps">FRAUD PREVENTION</span>
                 <h2>Customs Inspection Queue</h2>
               </div>
             </div>
@@ -266,7 +481,7 @@ export default function Home() {
               <div className="bento-metric-card" style={{ gridColumn: "span 2" }}>
                 <span className="bento-metric-label">FLAGGED FOR INSPECTION</span>
                 <div className="bento-content" style={{ justifyContent: "space-between" }}>
-                  <span className="bento-value" style={{ color: "#EF4444" }}>⚠️ {flaggedCount} Active Flags</span>
+                  <span className="bento-value" style={{ color: "#EF4444" }}>⚠️ {flaggedIds.length} Active Flags</span>
                   <span style={{ fontSize: "10px", color: "var(--color-sage)" }}>Terminal audits</span>
                 </div>
               </div>
@@ -323,18 +538,24 @@ export default function Home() {
             <div className="feed-header">
               <span className="label-caps">PENDING CHECK-INS</span>
             </div>
-            {records.filter(r => r.status === "Pending Exit Validation").map((rec) => (
-              <div key={rec.id} className="feed-card" onClick={() => setScannedClaim(rec)} style={{ cursor: "pointer" }}>
-                <div className="feed-card-left">
-                  <div className="feed-icon-container">⏳</div>
-                  <div className="feed-text-area">
-                    <span className="feed-title">{rec.id} • Tourist: {rec.touristWallet}</span>
-                    <span className="feed-subtitle">{rec.airport} • {rec.totalVat} (VAT)</span>
-                  </div>
-                </div>
-                <span className="label-caps" style={{ color: "var(--color-cyber-gold)" }}>Verify exit →</span>
+            {records.filter(r => r.status === 1 && !flaggedIds.includes(r.objectId)).length === 0 ? (
+              <div style={{ textAlign: "center", color: "var(--color-sage)", padding: "20px" }}>
+                No pending claims in exit queue.
               </div>
-            ))}
+            ) : (
+              records.filter(r => r.status === 1 && !flaggedIds.includes(r.objectId)).map((rec) => (
+                <div key={rec.objectId} className="feed-card" onClick={() => setScannedClaim(rec)} style={{ cursor: "pointer" }}>
+                  <div className="feed-card-left">
+                    <div className="feed-icon-container">⏳</div>
+                    <div className="feed-text-area">
+                      <span className="feed-title">{rec.claimNumber} • Tourist: {rec.tourist.slice(0, 6)}...{rec.tourist.slice(-4)}</span>
+                      <span className="feed-subtitle">VAT: {(rec.totalVatAmount / 1_000_000).toFixed(2)} USDC</span>
+                    </div>
+                  </div>
+                  <span className="label-caps" style={{ color: "var(--color-cyber-gold)" }}>Verify exit →</span>
+                </div>
+              ))
+            )}
           </>
         )}
 
@@ -343,18 +564,24 @@ export default function Home() {
             <div className="feed-header">
               <span className="label-caps">INSPECTION REGISTER</span>
             </div>
-            {records.filter(r => r.status === "Flagged for Inspection").map((rec) => (
-              <div key={rec.id} className="feed-card" onClick={() => setScannedClaim(rec)} style={{ cursor: "pointer" }}>
-                <div className="feed-card-left">
-                  <div className="feed-icon-container" style={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}>⚠️</div>
-                  <div className="feed-text-area">
-                    <span className="feed-title" style={{ color: "#EF4444" }}>{rec.id} • Inspection Pending</span>
-                    <span className="feed-subtitle">{rec.touristWallet} • {rec.totalVat}</span>
-                  </div>
-                </div>
-                <span className="label-caps" style={{ color: "var(--color-cyber-gold)" }}>Inspect goods →</span>
+            {records.filter(r => flaggedIds.includes(r.objectId)).length === 0 ? (
+              <div style={{ textAlign: "center", color: "var(--color-sage)", padding: "20px" }}>
+                No flagged claims.
               </div>
-            ))}
+            ) : (
+              records.filter(r => flaggedIds.includes(r.objectId)).map((rec) => (
+                <div key={rec.objectId} className="feed-card" onClick={() => setScannedClaim(rec)} style={{ cursor: "pointer" }}>
+                  <div className="feed-card-left">
+                    <div className="feed-icon-container" style={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}>⚠️</div>
+                    <div className="feed-text-area">
+                      <span className="feed-title" style={{ color: "#EF4444" }}>{rec.claimNumber} • Inspection Pending</span>
+                      <span className="feed-subtitle">{rec.tourist.slice(0, 6)}...{rec.tourist.slice(-4)} • {(rec.totalVatAmount / 1_000_000).toFixed(2)} USDC</span>
+                    </div>
+                  </div>
+                  <span className="label-caps" style={{ color: "var(--color-cyber-gold)" }}>Inspect goods →</span>
+                </div>
+              ))
+            )}
           </>
         )}
 
@@ -365,29 +592,57 @@ export default function Home() {
             </div>
             <div className="feed-card" style={{ flexDirection: "column", gap: "16px", alignItems: "flex-start" }}>
               <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                <span style={{ fontWeight: "bold", fontSize: "18px" }}>Claim Audit: {scannedClaim.id}</span>
-                <span className="label-caps" style={{ color: scannedClaim.status.startsWith("Approved") ? "#10B981" : "var(--color-cyber-gold)" }}>{scannedClaim.status}</span>
+                <span style={{ fontWeight: "bold", fontSize: "18px" }}>Claim Audit: {scannedClaim.claimNumber}</span>
+                <span className="label-caps" style={{ color: scannedClaim.status === 3 ? "#10B981" : "var(--color-cyber-gold)" }}>{getStatusLabel(scannedClaim)}</span>
               </div>
               <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px", width: "100%", color: "var(--color-sage)" }}>
-                <div>Tourist Wallet: <span style={{ color: "#fff" }}>{scannedClaim.touristWallet}</span></div>
-                <div>Total VAT Value: <span style={{ color: "#fff" }}>{scannedClaim.totalVat}</span></div>
-                <div>80% Payout Status: <span style={{ color: "#10B981" }}>✓ SUI Settle Complete ({scannedClaim.refundAmount})</span></div>
-                <div>Gate: <span style={{ color: "#fff" }}>{scannedClaim.airport}</span></div>
+                <div>Tourist Wallet: <span style={{ color: "#fff" }}>{scannedClaim.tourist}</span></div>
+                <div>Total VAT Value: <span style={{ color: "#fff" }}>{(scannedClaim.totalVatAmount / 1_000_000).toFixed(2)} USDC</span></div>
+                <div>80% Payout Status: <span style={{ color: "#10B981" }}>✓ SUI Settle Complete ({(scannedClaim.instantAmount / 1_000_000).toFixed(2)} USDC)</span></div>
+                <div>Sui Object ID: <span style={{ color: "#fff", fontSize: "11px", wordBreak: "break-all" }}>{scannedClaim.objectId}</span></div>
               </div>
-              {scannedClaim.status === "Pending Exit Validation" && (
+
+              {/* Walrus Receipts Inspection Area */}
+              <div style={{ width: "100%", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "12px", marginTop: "4px" }}>
+                <span className="label-caps" style={{ fontSize: "10px", color: "var(--color-cyber-gold)", marginBottom: "8px", display: "block" }}>
+                  Walrus Decentralized Receipts
+                </span>
+                {isLoadingReceipts ? (
+                  <div style={{ color: "var(--color-sage)", fontSize: "12px" }}>Fetching receipts from Walrus network...</div>
+                ) : receiptContents.length === 0 ? (
+                  <div style={{ color: "var(--color-sage)", fontSize: "12px" }}>No receipts loaded.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {receiptContents.map((rc, idx) => (
+                      <div key={idx} style={{ background: "rgba(255,255,255,0.05)", borderRadius: "8px", padding: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontSize: "12px", color: "#fff", fontWeight: "bold" }}>{rc.storeName || rc.businessName}</div>
+                          <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>Blob: {rc.blobId.slice(0, 10)}...</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "12px", color: "var(--color-cyber-gold)" }}>{rc.amountAED} AED</div>
+                          <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>VAT: {rc.vatAED} AED</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {(scannedClaim.status === 1 && !flaggedIds.includes(scannedClaim.objectId)) && (
                 <div style={{ display: "flex", gap: "10px", width: "100%" }}>
-                  <button className="btn-secondary" style={{ flex: 1, borderColor: "#EF4444", color: "#EF4444" }} onClick={() => handleFlagClaim(scannedClaim.id)}>
+                  <button className="btn-secondary" style={{ flex: 1, borderColor: "#EF4444", color: "#EF4444" }} onClick={() => handleFlagClaim(scannedClaim.objectId)}>
                     Flag Claim
                   </button>
-                  <button className="btn-primary" style={{ flex: 2 }} onClick={() => handleApproveExit(scannedClaim.id)}>
-                    Approve Exit (USDC Release)
+                  <button className="btn-primary" style={{ flex: 2 }} onClick={() => handleApproveExit(scannedClaim.objectId)} disabled={isApproving}>
+                    {isApproving ? "Approving on Sui..." : "Approve Exit (USDC Release)"}
                   </button>
                 </div>
               )}
-              {scannedClaim.status === "Flagged for Inspection" && (
+              {flaggedIds.includes(scannedClaim.objectId) && (
                 <div style={{ width: "100%" }}>
-                  <button className="btn-primary" style={{ width: "100%" }} onClick={() => handleApproveExit(scannedClaim.id)}>
-                    Clear Goods & Settle Split
+                  <button className="btn-primary" style={{ width: "100%" }} onClick={() => handleApproveExit(scannedClaim.objectId)} disabled={isApproving}>
+                    {isApproving ? "Approving on Sui..." : "Clear Goods & Settle Split"}
                   </button>
                 </div>
               )}
@@ -425,8 +680,6 @@ export default function Home() {
         </nav>
       </div>
 
-      {/* Real Sui Connect Button Modal automatically managed by WalletProvider */}
-
       {/* Scanner FAB Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
@@ -446,23 +699,22 @@ export default function Home() {
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 <div style={{ border: "1px solid rgba(212, 175, 55, 0.3)", borderRadius: "16px", padding: "20px", backgroundColor: "rgba(0,0,0,0.2)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-                    <span style={{ fontWeight: "bold", fontSize: "18px" }}>Claim ID: {scannedClaim.id}</span>
-                    <span style={{ color: "var(--color-cyber-gold)", fontWeight: "bold" }}>{scannedClaim.totalVat}</span>
+                    <span style={{ fontWeight: "bold", fontSize: "18px" }}>Claim ID: {scannedClaim.claimNumber}</span>
+                    <span style={{ color: "var(--color-cyber-gold)", fontWeight: "bold" }}>{(scannedClaim.totalVatAmount / 1_000_000).toFixed(2)} USDC</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "var(--color-sage)" }}>
-                    <div>Tourist Wallet: <span style={{ color: "#fff" }}>{scannedClaim.touristWallet}</span></div>
+                    <div>Tourist Wallet: <span style={{ color: "#fff" }}>{scannedClaim.tourist}</span></div>
                     <div>Receipts Verified: <span style={{ color: "#fff" }}>Walrus Decentralized Hash Check (✓ Passed)</span></div>
-                    <div>Airport gate: <span style={{ color: "#fff" }}>{scannedClaim.airport}</span></div>
-                    <div>Status: <span style={{ color: "var(--color-cyber-gold)" }}>{scannedClaim.status}</span></div>
+                    <div>Status: <span style={{ color: "var(--color-cyber-gold)" }}>{getStatusLabel(scannedClaim)}</span></div>
                   </div>
                 </div>
 
                 <div className="modal-buttons">
-                  <button className="btn-secondary" style={{ borderColor: "#EF4444", color: "#EF4444" }} onClick={() => handleFlagClaim(scannedClaim.id)}>
+                  <button className="btn-secondary" style={{ borderColor: "#EF4444", color: "#EF4444" }} onClick={() => handleFlagClaim(scannedClaim.objectId)}>
                     Flag Claim
                   </button>
-                  <button className="btn-primary" onClick={() => handleApproveExit(scannedClaim.id)}>
-                    Approve Exit (Release 20%)
+                  <button className="btn-primary" onClick={() => handleApproveExit(scannedClaim.objectId)} disabled={isApproving}>
+                    {isApproving ? "Approving Exit..." : "Approve Exit (Release 20%)"}
                   </button>
                 </div>
               </div>
