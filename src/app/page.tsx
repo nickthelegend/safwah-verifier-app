@@ -9,6 +9,7 @@ import { generateAndUploadCertificate } from "../lib/generate-certificate";
 import { getWalrusBlobUrl } from "../lib/walrus";
 import { CONTRACTS } from "../lib/contracts";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import { toast } from "sonner";
 
 // Types
 interface ClaimRecord {
@@ -216,7 +217,7 @@ export default function Home() {
     if (claim) {
       setScannedClaim(claim);
     } else {
-      alert(`Claim Object ID ${searchClaimId} not found on Sui Devnet. Please verify the Object ID.`);
+      toast.error(`Claim Object ID ${searchClaimId} not found on Sui Devnet. Please verify the Object ID.`);
     }
   };
 
@@ -253,12 +254,12 @@ export default function Home() {
       if (claim) {
         setScannedClaim(claim);
       } else {
-        alert(`Claim Object ${claimId} not found on Sui.`);
+        toast.error(`Claim Object ${claimId} not found on Sui.`);
         setIsModalOpen(false);
       }
     } catch (err: any) {
       console.error(err);
-      alert(`Scan error: ${err.message || err}`);
+      toast.error(`Scan error: ${err.message || err}`);
       setIsModalOpen(false);
     }
   };
@@ -266,11 +267,11 @@ export default function Home() {
   // Exit Validation Approval: release remaining 20%
   const handleApproveExit = async (objectId: string) => {
     if (!walletConnected) {
-      alert("Please connect verifier node wallet!");
+      toast.error("Please connect verifier node wallet!");
       return;
     }
     if (!hasVerifierCap) {
-      alert("This wallet does not hold the required Customs VerifierCap!");
+      toast.error("This wallet does not hold the required Customs VerifierCap!");
       return;
     }
 
@@ -304,7 +305,7 @@ export default function Home() {
       });
 
       const result = await signAndExecute({ transaction: tx });
-      alert(`Exit validation success for Claim ${claim.claimNumber}!\n\nSmart contract transaction signed.\nRemaining 20% on-chain payout released to tourist wallet.\nTx Hash: ${result.digest}\nCertificate Blob: ${certResult.blobId.slice(0, 8)}...`);
+      toast.success(`Exit validation success for Claim ${claim.claimNumber}!\n\nSmart contract transaction signed.\nRemaining 20% on-chain payout released to tourist wallet.\nTx Hash: ${result.digest}\nCertificate Blob: ${certResult.blobId.slice(0, 8)}...`);
 
       // Update local metrics
       setApprovedCount(prev => prev + 1);
@@ -321,7 +322,7 @@ export default function Home() {
       await loadRecentClaims();
       setActiveCategory("claims");
     } catch (err: any) {
-      alert(`Exit approval failed: ${err.message || err}`);
+      toast.error(`Exit approval failed: ${err.message || err}`);
     } finally {
       setIsApproving(false);
     }
@@ -337,7 +338,7 @@ export default function Home() {
     setScannedClaim(null);
     setIsModalOpen(false);
     setActiveCategory("flagged");
-    alert(`Claim has been FLAGGED for physical customs inspection.\nTourist has been notified via their app.`);
+    toast.warning(`Claim has been FLAGGED for physical customs inspection.\nTourist has been notified via their app.`);
   };
 
   const getStatusLabel = (claim: ClaimRecord) => {
@@ -552,7 +553,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <button className="btn-primary" style={{ width: "100%", padding: "16px" }} onClick={() => alert("Daily Audit Report successfully exported to Federal Tax Authority Server.")}>
+            <button className="btn-primary" style={{ width: "100%", padding: "16px" }} onClick={() => toast.success("Daily Audit Report successfully exported to Federal Tax Authority Server.")}>
               Export FTA Compliance Report
             </button>
           </>

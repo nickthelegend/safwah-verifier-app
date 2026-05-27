@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
 import SuiProvider from "../providers/SuiProvider";
+import { Toaster } from "sonner";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -25,6 +26,7 @@ export default function RootLayout({
         <SuiProvider>
           {children}
         </SuiProvider>
+        <Toaster richColors position="top-center" theme="dark" />
       </body>
     </html>
   );
