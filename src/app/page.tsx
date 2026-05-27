@@ -8,6 +8,7 @@ import WalletConnect from "../components/WalletConnect";
 import { generateAndUploadCertificate } from "../lib/generate-certificate";
 import { getWalrusBlobUrl } from "../lib/walrus";
 import { CONTRACTS } from "../lib/contracts";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 // Types
 interface ClaimRecord {
@@ -219,20 +220,47 @@ export default function Home() {
     }
   };
 
-  // FAB Scanner Trigger: pulls the first pending claim from the dynamic queue
+  // FAB Scanner Trigger: Opens camera scanner modal
   const handleTriggerScanner = () => {
-    const pending = records.find(r => r.status === 1 && !flaggedIds.includes(r.objectId));
-    if (!pending) {
-      alert("No active pending claims found in exit queue to scan. Try submitting one in the tourist app.");
-      return;
-    }
-
+    setScannedClaim(null);
     setIsScanning(true);
     setIsModalOpen(true);
-    setTimeout(() => {
-      setScannedClaim(pending);
+  };
+
+  // Process QR scanner results
+  const handleScanClaimResult = async (result: string) => {
+    if (!result) return;
+    try {
+      let claimId = "";
+      if (result.startsWith('{')) {
+        const payload = JSON.parse(result);
+        if (payload.version === 'safwah_v1' && payload.claimObjectId) {
+          claimId = payload.claimObjectId;
+        } else {
+          throw new Error("Invalid Safwah claim QR version");
+        }
+      } else if (result.startsWith('0x') && result.length === 66) {
+        claimId = result;
+      } else {
+        throw new Error("Unrecognized QR code format");
+      }
+
       setIsScanning(false);
-    }, 1200);
+      setIsLoadingReceipts(true);
+      const claim = await handleFetchClaim(claimId);
+      setIsLoadingReceipts(false);
+
+      if (claim) {
+        setScannedClaim(claim);
+      } else {
+        alert(`Claim Object ${claimId} not found on Sui.`);
+        setIsModalOpen(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(`Scan error: ${err.message || err}`);
+      setIsModalOpen(false);
+    }
   };
 
   // Exit Validation Approval: release remaining 20%
@@ -683,17 +711,33 @@ export default function Home() {
       {/* Scanner FAB Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "360px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <span className="label-caps" style={{ color: "var(--color-cyber-gold)", fontSize: "12px" }}>EXIT VALIDATION GATE SCANNER</span>
               <button onClick={() => setIsModalOpen(false)} style={{ background: "none", border: "none", fontSize: "24px", color: "var(--color-sage)", cursor: "pointer" }}>&times;</button>
             </div>
             
             {isScanning ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "36px 0" }}>
-                <span style={{ fontSize: "40px", animation: "pulse 1.5s infinite" }}>📷</span>
-                <span style={{ fontSize: "16px", color: "var(--color-sage)" }}>Scanning tourist's Safwah NFT / QR...</span>
-                <div style={{ width: "100%", height: "2px", backgroundColor: "var(--color-cyber-gold)", animation: "pulse 1.5s infinite" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "1", borderRadius: "16px", overflow: "hidden", background: "#000" }}>
+                  <Scanner
+                    onScan={(detectedCodes) => {
+                      if (detectedCodes[0]?.rawValue) {
+                        handleScanClaimResult(detectedCodes[0].rawValue);
+                      }
+                    }}
+                    onError={(err) => console.warn(err)}
+                    constraints={{ facingMode: "environment" }}
+                    styles={{
+                      container: { width: "100%", height: "100%" },
+                      video: { width: "100%", height: "100%", objectFit: "cover" }
+                    }}
+                  />
+                  <div className="absolute inset-0 pointer-events-none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, border: "2px dashed var(--color-cyber-gold)", margin: "30px", borderRadius: "12px" }} />
+                </div>
+                <p style={{ color: "var(--color-sage)", fontSize: "12px", textAlign: "center" }}>
+                  Scan the tourist's claim QR code to inspect and approve exit.
+                </p>
               </div>
             ) : scannedClaim ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
