@@ -58,9 +58,25 @@ export default function Home() {
   const verifierName = verifierCapObject ? ((verifierCapObject.content as any)?.fields?.verifier_name || "Customs Gate Officer") : "Customs Gate Officer";
 
   // Verifier stats state
-  const [approvedCount, setApprovedCount] = useState(148);
-  const [flaggedCount, setFlaggedCount] = useState(12);
-  const [volumeProcessed, setVolumeProcessed] = useState("18,450.00");
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [flaggedCount, setFlaggedCount] = useState(0);
+  const [volumeProcessed, setVolumeProcessed] = useState("0.00");
+
+  // Query escrow for global protocol stats
+  const { data: escrowObj } = useSuiClientQuery('getObject', {
+    id: CONTRACTS.ESCROW_ID,
+    options: { showContent: true },
+  }, { refetchInterval: 15_000 });
+
+  useEffect(() => {
+    if (escrowObj?.data?.content) {
+      const escrowFields = (escrowObj.data.content as any).fields ?? {};
+      const totalSettledVal = Number(escrowFields.total_settled ?? 0);
+      const volumeVal = ((Number(escrowFields.total_usdc_refunded ?? 0)) / 1_000_000).toFixed(2);
+      setApprovedCount(totalSettledVal);
+      setVolumeProcessed(volumeVal);
+    }
+  }, [escrowObj]);
 
   // Airport queue records state
   const [records, setRecords] = useState<ClaimRecord[]>([]);

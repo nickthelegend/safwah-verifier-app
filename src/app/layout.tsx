@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
 import SuiProvider from "../providers/SuiProvider";
 import { Toaster } from "sonner";
 
-const nunito = Nunito({
-  variable: "--font-nunito",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  weight: ['300', '400', '500', '600', '700'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -21,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={nunito.variable}>
-      <body className={nunito.className}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans">
         <SuiProvider>
           {children}
         </SuiProvider>
