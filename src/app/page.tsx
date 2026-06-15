@@ -443,53 +443,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Category selector */}
-      <section className="category-scroll-container" ref={scrollContainerRef}>
-        <div className="category-btn-wrapper" id="cat-btn-verify">
-          {activeCategory === "verify" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("verify")}>
-              <div className="active-circle">🔍</div>
-              <span className="active-label">Verify Claims</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("verify")}>🔍</button>
-          )}
-        </div>
-
-        <div className="category-btn-wrapper" id="cat-btn-claims">
-          {activeCategory === "claims" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("claims")}>
-              <div className="active-circle">⏳</div>
-              <span className="active-label">Exit Queue</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("claims")}>⏳</button>
-          )}
-        </div>
-
-        <div className="category-btn-wrapper" id="cat-btn-flagged">
-          {activeCategory === "flagged" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("flagged")}>
-              <div className="active-circle">⚠️</div>
-              <span className="active-label">Flagged</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("flagged")}>⚠️</button>
-          )}
-        </div>
-
-        <div className="category-btn-wrapper" id="cat-btn-compliance">
-          {activeCategory === "compliance" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("compliance")}>
-              <div className="active-circle">🛡️</div>
-              <span className="active-label">Auditing</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("compliance")}>🛡️</button>
-          )}
-        </div>
-      </section>
-
       {/* Main card panel - simulates view transition */}
       <section key={activeCategory} className="hero-card fade-transition">
         <div className="decorative-blob" />
@@ -768,27 +721,37 @@ export default function Home() {
       {/* Floating navigation bar */}
       <div className="nav-wrapper">
         <nav className="nav-pill-bar">
-          <button className={`nav-item-btn ${activeCategory === "verify" ? "active" : "inactive"}`} onClick={() => setActiveCategory("verify")}>
-            <svg viewBox="0 0 24 24" stroke="currentColor">
-              <rect x="3" y="3" width="7" height="9" rx="1" />
-              <rect x="14" y="3" width="7" height="5" rx="1" />
-              <rect x="14" y="12" width="7" height="9" rx="1" />
-              <rect x="3" y="16" width="7" height="5" rx="1" />
+          <button className={`nav-item-btn ${activeCategory === "verify" ? "active" : "inactive"}`} onClick={() => setActiveCategory("verify")} title="Verify Claims">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+
+          <button className={`nav-item-btn ${activeCategory === "claims" ? "active" : "inactive"}`} onClick={() => setActiveCategory("claims")} title="Exit Queue">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <path d="M5 2h14v2H5V2zm0 18h14v2H5v-2zm12-14L12 12 7 6h10zm-10 12l5-6 5 6H7z"/>
             </svg>
           </button>
 
           {/* FAB: Launch Scanner Simulator */}
           <div className="fab-container">
-            <button className={`fab-btn ${isModalOpen ? "open" : ""}`} onClick={handleTriggerScanner}>
+            <button className={`fab-btn ${isModalOpen ? "open" : ""}`} onClick={handleTriggerScanner} title="Scan Claim QR Code">
               <svg viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
               </svg>
             </button>
           </div>
 
-          <button className={`nav-item-btn ${activeCategory === "claims" ? "active" : "inactive"}`} onClick={() => setActiveCategory("claims")}>
-            <svg viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <button className={`nav-item-btn ${activeCategory === "flagged" ? "active" : "inactive"}`} onClick={() => setActiveCategory("flagged")} title="Flagged Claims">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>
+            </svg>
+          </button>
+
+          <button className={`nav-item-btn ${activeCategory === "compliance" ? "active" : "inactive"}`} onClick={() => setActiveCategory("compliance")} title="Compliance Auditing">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
           </button>
         </nav>
