@@ -349,7 +349,21 @@ export default function Home() {
       });
 
       const result = await signAndExecute({ transaction: tx });
-      toast.success(`Exit validation success for Claim ${claim.claimNumber}!\n\nSmart contract transaction signed.\nRemaining 20% on-chain payout released to tourist wallet.\nTx Hash: ${result.digest}\nCertificate Blob: ${certResult.blobId.slice(0, 8)}...`);
+      toast.success(
+        <div>
+          <p className="font-bold">Exit validation success for Claim {claim.claimNumber}!</p>
+          <p className="text-xs text-zinc-300 mt-1">Remaining 20% on-chain payout released to tourist wallet.</p>
+          <p className="text-xs text-zinc-300">Certificate Blob: {certResult.blobId.slice(0, 8)}...</p>
+          <a
+            href={`https://suiscan.xyz/txblock/${result.digest}?network=testnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-700 underline text-xs font-semibold block mt-1"
+          >
+            View on Sui Explorer ↗
+          </a>
+        </div>
+      );
 
       // Update local metrics
       setApprovedCount(prev => prev + 1);
