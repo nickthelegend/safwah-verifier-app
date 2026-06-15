@@ -355,7 +355,7 @@ export default function Home() {
           <p className="text-xs text-zinc-300 mt-1">Remaining 20% on-chain payout released to tourist wallet.</p>
           <p className="text-xs text-zinc-300">Certificate Blob: {certResult.blobId.slice(0, 8)}...</p>
           <a
-            href={`https://suiscan.xyz/txblock/${result.digest}?network=testnet`}
+            href={`https://suiscan.xyz/testnet/tx/${result.digest}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:text-blue-700 underline text-xs font-semibold block mt-1"
