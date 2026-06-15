@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
 import SuiProvider from "../providers/SuiProvider";
 import { Toaster } from "sonner";
 
-const spaceGrotesk = Space_Grotesk({
+const spaceGrotesk = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-space-grotesk',
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700', '800'],
 });
 
 const jetbrainsMono = JetBrains_Mono({

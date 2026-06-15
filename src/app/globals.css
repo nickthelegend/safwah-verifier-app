@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
 :root {
   /* Safwah Theme Colors */
   --color-cyber-gold: #FDE047; /* Saturated Cyber Yellow/Gold */
@@ -18,9 +20,9 @@
   --color-off-white: var(--color-void-black); /* Canvas backdrop is Void Black */
   --color-white: #121212; /* Core Card surfaces are dark charcoal */
   
-  --font-space-grotesk: var(--font-space-grotesk), system-ui, sans-serif;
-  --font-jetbrains-mono: var(--font-jetbrains-mono), monospace;
-  --font-nunito: var(--font-space-grotesk);
+  --font-space-grotesk: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-jetbrains-mono: 'JetBrains Mono', monospace;
+  --font-nunito: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
   --radius-main-card: 40px; /* 2.5rem */
   --radius-nested-item: 24px; /* 1.5rem */
