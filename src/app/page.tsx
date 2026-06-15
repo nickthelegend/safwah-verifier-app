@@ -98,7 +98,7 @@ export default function Home() {
 
   // Load flagged IDs from MongoDB on mount
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
     fetch(`${backendUrl}/api/flagged`)
       .then(res => res.json())
       .then(data => {
@@ -130,7 +130,7 @@ export default function Home() {
     localStorage.setItem("safwah_flagged_ids", JSON.stringify(ids));
 
     if (updatedObjectId) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
       fetch(`${backendUrl}/api/flagged`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
