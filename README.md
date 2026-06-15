@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛂 Safwah Customs Gate Verifier Frontend
 
-## Getting Started
+This Next.js application serves as the gate operator interface for UAE Airport Customs officers. It validates tourist departures and triggers final VAT escrow payouts on-chain.
 
-First, run the development server:
+## 🌟 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+* **Verifier Access Control**: Detects the cryptographically issued `VerifierCap` in the officer's SUI wallet to grant access.
+* **Walrus Receipts Auditor**: Fetches and parses purchase receipts from decentralized Walrus blob storage matching the Claim ID.
+* **Release Payouts**: Signs the departure check-in, releasing the remaining 20% VAT split to the tourist.
+* **Physical Goods Flagging**: Suspends claims for jewelry or luxury inspections and files flags stored in MongoDB.
+* **MongoDB Integration**: Connects to the sponsor backend to query exit queues and sync physical verification statuses.
+
+## ⚙️ Configuration (`.env`)
+
+Configure the following variables in a `.env` file:
+```env
+VITE_SUI_PACKAGE_ID=0x96604c290f1467bf041b080bf945518d56f597cb6a07d0d698466c44ed0eabfb
+VITE_SAFWAH_ESCROW_ID=0x36da6295fa6bf907034fa65a84f5f921aa46997b7c492d3c7b2dc0c184115990
+VITE_BACKEND_URL=http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Execution & Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Install dependencies:
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Run in development mode:
+```bash
+npm run dev
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Run tests:
+```bash
+npm run test
+```

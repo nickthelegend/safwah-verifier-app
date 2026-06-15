@@ -96,21 +96,49 @@ export default function Home() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load flagged IDs from localStorage on mount
+  // Load flagged IDs from MongoDB on mount
   useEffect(() => {
-    const saved = localStorage.getItem("safwah_flagged_ids");
-    if (saved) {
-      try {
-        setFlaggedIds(JSON.parse(saved));
-      } catch (e) {}
-    }
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    fetch(`${backendUrl}/api/flagged`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setFlaggedIds(data);
+        } else {
+          const saved = localStorage.getItem("safwah_flagged_ids");
+          if (saved) {
+            try {
+              setFlaggedIds(JSON.parse(saved));
+            } catch (e) {}
+          }
+        }
+      })
+      .catch(err => {
+        console.warn("Failed to fetch flagged claims from MongoDB, falling back to localStorage", err);
+        const saved = localStorage.getItem("safwah_flagged_ids");
+        if (saved) {
+          try {
+            setFlaggedIds(JSON.parse(saved));
+          } catch (e) {}
+        }
+      });
   }, []);
 
-  // Save flagged IDs to localStorage when modified
-  const saveFlaggedIds = (ids: string[]) => {
+  // Save flagged IDs helper (persists single flag action to MongoDB)
+  const saveFlaggedIds = (ids: string[], updatedObjectId?: string, flagged?: boolean) => {
     setFlaggedIds(ids);
     localStorage.setItem("safwah_flagged_ids", JSON.stringify(ids));
+
+    if (updatedObjectId) {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      fetch(`${backendUrl}/api/flagged`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claimObjectId: updatedObjectId, flagged })
+      }).catch(err => console.error("Failed to update flagged status on MongoDB", err));
+    }
   };
+
 
   // Helper to fetch single VatClaim details
   const handleFetchClaim = async (objectId: string): Promise<ClaimRecord | null> => {
@@ -330,7 +358,7 @@ export default function Home() {
 
       // Remove from flagged if approved
       if (flaggedIds.includes(claim.objectId)) {
-        saveFlaggedIds(flaggedIds.filter(id => id !== claim.objectId));
+        saveFlaggedIds(flaggedIds.filter(id => id !== claim.objectId), claim.objectId, false);
       }
 
       setScannedClaim(null);
@@ -348,7 +376,7 @@ export default function Home() {
   const handleFlagClaim = (objectId: string) => {
     if (!flaggedIds.includes(objectId)) {
       const updatedFlags = [...flaggedIds, objectId];
-      saveFlaggedIds(updatedFlags);
+      saveFlaggedIds(updatedFlags, objectId, true);
       setFlaggedCount(updatedFlags.length);
     }
     setScannedClaim(null);
@@ -659,15 +687,23 @@ export default function Home() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {receiptContents.map((rc, idx) => (
-                      <div key={idx} style={{ background: "rgba(255,255,255,0.05)", borderRadius: "8px", padding: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ fontSize: "12px", color: "#fff", fontWeight: "bold" }}>{rc.storeName || rc.businessName}</div>
-                          <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>Blob: {rc.blobId.slice(0, 10)}...</div>
+                      <div key={idx} style={{ background: "rgba(255,255,255,0.05)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <div style={{ fontSize: "12px", color: "#fff", fontWeight: "bold" }}>{rc.storeName || rc.businessName}</div>
+                            <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>Blob: {rc.blobId.slice(0, 10)}...</div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: "12px", color: "var(--color-cyber-gold)" }}>{rc.amountAED} AED</div>
+                            <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>VAT: {rc.vatAED} AED</div>
+                          </div>
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "12px", color: "var(--color-cyber-gold)" }}>{rc.amountAED} AED</div>
-                          <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>VAT: {rc.vatAED} AED</div>
-                        </div>
+                        {rc.receiptImage && (
+                          <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <span style={{ fontSize: "9px", color: "var(--color-cyber-gold)", fontWeight: "bold", textTransform: "uppercase" }}>Uploaded Receipt File:</span>
+                            <img src={rc.receiptImage} alt="Uploaded Receipt" style={{ maxWidth: "100%", maxHeight: "160px", borderRadius: "6px", objectFit: "contain", backgroundColor: "#000" }} />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
