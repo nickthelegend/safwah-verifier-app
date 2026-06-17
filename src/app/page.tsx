@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient, useSuiClientQuery } from "@mysten/dapp-kit";
+import { useSuiClient, useSuiClientQuery } from "@mysten/dapp-kit";
+import { useDynamicWallet } from "../hooks/useDynamicWallet";
 import { Transaction } from "@mysten/sui/transactions";
 import WalletConnect from "../components/WalletConnect";
 import { generateAndUploadCertificate } from "../lib/generate-certificate";
@@ -34,12 +35,11 @@ interface ClaimRecord {
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<"verify" | "claims" | "flagged" | "compliance">("verify");
   
-  // Real Sui Wallet connection hooks
-  const currentAccount = useCurrentAccount();
+  // Real Sui Wallet connection hooks via Dynamic
+  const { currentAccount, mutateAsync: signAndExecute } = useDynamicWallet();
   const walletConnected = !!currentAccount;
   const walletAddress = currentAccount?.address || "";
   const suiClient = useSuiClient();
-  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
 
   // Query owned VerifierCap object
   const { data: ownedVerifierCaps, refetch: refetchVerifierCaps } = useSuiClientQuery('getOwnedObjects', {

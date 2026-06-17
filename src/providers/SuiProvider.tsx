@@ -1,9 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SuiClientProvider, WalletProvider, createNetworkConfig } from "@mysten/dapp-kit";
+import { SuiClientProvider, createNetworkConfig } from "@mysten/dapp-kit";
 import { getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
-import "@mysten/dapp-kit/dist/index.css";
+import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
+import { SuiWalletConnectors } from "@dynamic-labs/sui";
 
 const queryClient = new QueryClient();
 
@@ -16,9 +17,14 @@ export default function SuiProvider({ children }: { children: React.ReactNode })
   return (
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
-        <WalletProvider autoConnect>
+        <DynamicContextProvider
+          settings={{
+            environmentId: '25eb8888-e9d6-4967-8017-448572067c5d',
+            walletConnectors: [SuiWalletConnectors],
+          }}
+        >
           {children}
-        </WalletProvider>
+        </DynamicContextProvider>
       </SuiClientProvider>
     </QueryClientProvider>
   );
