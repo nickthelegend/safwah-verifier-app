@@ -19,7 +19,7 @@ export default function SuiProvider({ children }: { children: React.ReactNode })
       <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
         <DynamicContextProvider
           settings={{
-            environmentId: '25eb8888-e9d6-4967-8017-448572067c5d',
+            environmentId: '25c3adac-3f6f-4658-b84e-6f3a476a95bc',
             walletConnectors: [SuiWalletConnectors],
           }}
         >
