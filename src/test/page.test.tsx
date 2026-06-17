@@ -14,14 +14,9 @@ const mockSuiClient = {
 let mockHasVerifierCap = true;
 let mockAccount: any = { address: '0x73954305f663e08711eec149e0c29af30fb514dd9a3c2f39b3cd5507478783f8' };
 
-vi.mock('../hooks/useDynamicWallet', () => ({
-  useDynamicWallet: () => ({
-    currentAccount: mockAccount,
-    mutateAsync: mockSignAndExecute,
-  }),
-}));
-
 vi.mock('@mysten/dapp-kit', () => ({
+  useCurrentAccount: () => mockAccount,
+  useSignAndExecuteTransaction: () => ({ mutateAsync: mockSignAndExecute }),
   useSuiClient: () => mockSuiClient,
   useSuiClientQuery: (queryName: string, params: any) => {
     if (queryName === 'getOwnedObjects') {
@@ -155,23 +150,23 @@ describe('Verifier App Home Page', () => {
     render(<Home />);
 
     // Switch to Exit Queue tab
-    const exitQueueBtn = screen.getByTitle('Exit Queue');
+    const exitQueueBtn = screen.getByText('⏳').closest('button');
     expect(exitQueueBtn).toBeInTheDocument();
-    fireEvent.click(exitQueueBtn);
+    fireEvent.click(exitQueueBtn!);
 
     expect(screen.getByText('Active Validation Queue')).toBeInTheDocument();
 
     // Switch to Flagged tab
-    const flaggedBtn = screen.getByTitle('Flagged Claims');
+    const flaggedBtn = screen.getByText('⚠️').closest('button');
     expect(flaggedBtn).toBeInTheDocument();
-    fireEvent.click(flaggedBtn);
+    fireEvent.click(flaggedBtn!);
 
     expect(screen.getByText('Customs Inspection Queue')).toBeInTheDocument();
 
     // Switch to Auditing tab
-    const auditingBtn = screen.getByTitle('Compliance Auditing');
+    const auditingBtn = screen.getByText('🛡️').closest('button');
     expect(auditingBtn).toBeInTheDocument();
-    fireEvent.click(auditingBtn);
+    fireEvent.click(auditingBtn!);
 
     expect(screen.getByText('Government Compliance')).toBeInTheDocument();
   });
@@ -229,14 +224,16 @@ describe('Verifier App Home Page', () => {
 
     expect(generateAndUploadCertificate).toHaveBeenCalled();
     expect(mockSignAndExecute).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith(
+      expect.stringContaining('Exit validation success for Claim CLM-999!')
+    );
   });
 
   test('compliance export report triggers toast', async () => {
     render(<Home />);
 
-    const auditingBtn = screen.getByTitle('Compliance Auditing');
-    fireEvent.click(auditingBtn);
+    const auditingBtn = screen.getByText('🛡️').closest('button');
+    fireEvent.click(auditingBtn!);
 
     const exportBtn = screen.getByText('Export FTA Compliance Report');
     fireEvent.click(exportBtn);
